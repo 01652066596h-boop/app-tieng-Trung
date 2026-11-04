@@ -519,6 +519,8 @@ async function initCloud(){
    if(!user){setCloud('signed-out');return;}
    cloud.ref=fs.doc(db,'users',user.uid);setCloud(navigator.onLine?'syncing':'offline');
    cloud.unsub=fs.onSnapshot(cloud.ref,{includeMetadataChanges:true},onCloudSnapshot,error=>{console.error(error);setCloud('error',cloudErrorText(error));});
+   // SDK tự thử lại mãi khi chưa tạo Firestore hoặc mạng bị chặn, nên báo lỗi sau 15 giây thay vì treo "Đang đồng bộ".
+   setTimeout(()=>{if(cloud.user===user&&!cloud.ready&&navigator.onLine&&cloud.status==='syncing')setCloud('error','Chưa kết nối được Firestore sau 15 giây. Kiểm tra đã tạo Firestore Database chưa, hoặc thử tắt trình chặn quảng cáo.');},15000);
   });
  }catch(error){console.error(error);setCloud('error','Không tải được Firebase. Kiểm tra mạng hoặc FIREBASE_CONFIG.');}
 }
