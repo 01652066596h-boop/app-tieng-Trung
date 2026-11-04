@@ -502,6 +502,7 @@ function setCloud(status,error=''){cloud.status=status;cloud.error=error;renderN
 function cloudErrorText(error){
  const code=error?.code||'';
  if(code.includes('permission-denied'))return'Firestore từ chối quyền ghi/đọc. Kiểm tra quy tắc bảo mật trong SETUP-FIREBASE.md.';
+ if(code.includes('configuration-not-found')||code.includes('operation-not-allowed'))return'Firebase chưa bật đăng nhập Google. Vào Authentication → Sign-in method → Google → Enable.';
  if(code.includes('unauthorized-domain'))return'Tên miền này chưa được thêm vào Authorized domains của Firebase Authentication.';
  if(code.includes('invalid-argument')||code.includes('resource-exhausted'))return'Dữ liệu quá lớn để đồng bộ (giới hạn khoảng 1 MB). Hãy xuất JSON để sao lưu.';
  return'Không đồng bộ được ('+(code||error?.message||'lỗi không rõ')+').';
