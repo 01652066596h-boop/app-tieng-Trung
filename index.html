@@ -55,6 +55,8 @@
 // Sổ mới trống theo yêu cầu; sổ trước không bị ghi đè.
 const PREVIOUS_STORAGE_KEY='moi-ngay-mot-net.clean-20261106';
 const STORAGE_KEY='moi-ngay-mot-net.clean-20261106-r2';
+// Sổ của bản app trước trên GitHub Pages; được nạp vào sổ v3 ở lần mở đầu tiên.
+const LEGACY_STORAGE_KEY='moi-ngay-mot-net.v1';
 // Dán cấu hình web app Firebase vào đây để bật đồng bộ PC ↔ điện thoại (xem SETUP-FIREBASE.md). null = chỉ lưu trên máy.
 const FIREBASE_CONFIG={apiKey:"AIzaSyDm_Q5fWbWjdfnIwVX45ACgEk6OPOvCcpc",authDomain:"app-tieng-trung-5681b.firebaseapp.com",projectId:"app-tieng-trung-5681b",storageBucket:"app-tieng-trung-5681b.firebasestorage.app",messagingSenderId:"863081569238",appId:"1:863081569238:web:ea29eeecc5ddc0f0cd6277"};
 const FIREBASE_URL='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -138,7 +140,7 @@ function gradeMeaning(answer,meaning){return evaluateMeaning(answer,Array.isArra
 function loadState(){
  let raw;
  try{raw=localStorage.getItem(STORAGE_KEY);}catch{memoryOnly=true;return defaultState();}
- if(!raw)return defaultState();
+ if(!raw){try{const old=localStorage.getItem(LEGACY_STORAGE_KEY);if(old){const s=validateState(JSON.parse(old));localStorage.setItem(STORAGE_KEY,JSON.stringify(s));return s;}}catch{}return defaultState();}
  try{const parsed=JSON.parse(raw);if(parsed.schemaVersion!==3)migrationRaw=raw;return validateState(parsed);}catch{corruptRaw=raw;return defaultState();}
 }
 function commit(next){
@@ -945,7 +947,7 @@ function downloadBeforeClear(){try{const raw=localStorage.getItem(STORAGE_KEY+'.
 function renderSettings(){
  $('#main').innerHTML=heading('Gọn gàng, theo cách của bạn','Cài đặt & sao lưu','Giữ tiến độ an toàn và điều chỉnh mức chấm bài viết tay.')+
  '<div class="settings-grid"><section class="card"><h2>Chấm bài viết tay</h2><form id="settings-form"><label>Số lần sai tối đa mỗi chữ<input id="max-mistakes" type="number" min="0" max="50" step="1" required value="'+state.settings.maxMistakesPerChar+'"></label><p class="muted tiny" style="margin-top:12px">Mặc định: 3. Một từ chỉ được tính đúng khi hoàn thành tất cả chữ và không chữ nào vượt ngưỡng này. Gợi ý nét vẫn hiện sau 3 lần sai ở cùng một nét.</p><label class="check"><input type="checkbox" id="settings-with-pinyin" '+(state.settings.writingWithPinyin?'checked':'')+'>Loại 1 kèm pinyin</label><label>Kiểu pinyin mặc định<select id="settings-pinyin-mode"><option value="tones">A · Có thanh điệu</option><option value="toneless">B · Không cần dấu</option></select></label><label>Số lần sai trước khi hiện đáp án<input id="attempts-before-reveal" type="number" min="1" max="10" required value="'+state.settings.attemptsBeforeReveal+'"></label><label>Tốc độ đọc <output id="rate-value">'+state.settings.speechRate+'</output><input type="range" id="speech-rate" min="0.5" max="1.2" step="0.05" value="'+state.settings.speechRate+'"></label><label class="check"><input type="checkbox" id="auto-speak" '+(state.settings.autoSpeak?'checked':'')+'>Tự đọc khi hiện đáp án</label><button class="primary" type="submit">Lưu cài đặt</button></form></section>'+
- '<section class="card"><h2>Bản sao của riêng bạn</h2><p class="tiny muted">Bản này bắt đầu với sổ trống riêng. Sổ trước không tự nhập vào. Bạn có thể tải bản cũ bên dưới nếu cần.</p><div class="row"><button type="button" id="download-previous">Tải sổ trước (JSON)</button><button type="button" id="download-before-clear">Tải bản sao trước lần xoá gần nhất</button><button type="button" id="clear-current" class="danger">Xoá toàn bộ từ trong sổ này</button></div><p class="muted">JSON gồm bài học, từ vựng, thống kê và cài đặt. Dùng để chuyển sang máy hoặc trình duyệt khác.</p><div class="row"><button id="export-settings" class="primary">Xuất file JSON</button><button id="import-button">Nhập file JSON</button><button id="export-days-settings">Xuất từ theo ngày</button><input id="import-file" type="file" accept=".json,application/json" hidden></div><p class="tiny muted" style="margin:14px 0 0">Nhập file sẽ cho bạn xem số ngày, số từ và chọn ghép hoặc thay thế trước khi áp dụng.</p>'+(corruptRaw!==null?'<hr class="divider"><button class="danger" id="download-corrupt">Tải dữ liệu gốc đang bị lỗi</button>':'')+'</section></div><section class="card" id="sync-card" style="margin-top:20px"></section><section class="card" style="margin-top:20px"><h2>Về dữ liệu và kết nối</h2><p>Ứng dụng lưu bằng <code>localStorage</code> trên thiết bị này'+(FIREBASE_CONFIG?' và đồng bộ lên Firebase khi bạn đăng nhập Google':', không có tài khoản hay máy chủ đồng bộ')+'. Khi xoá dữ liệu trình duyệt, bạn có thể mất bài học nếu chưa xuất JSON.</p><p class="muted">Cần mạng để tải Hanzi Writer và nét chữ chưa tải. Sau khi tải, nét được giữ trong bộ nhớ của phiên đang mở. Khi mở lại trang ngoại tuyến, phần viết tay có thể không chạy; luyện nghĩa vẫn dùng được.</p><p class="tiny muted" style="margin-bottom:0">Hanzi Writer 3.7.3 · Dữ liệu nét 2.0.1 · Chữ giản thể do bạn nhập · pinyin-pro 3.18.2 · Tự tạo pinyin theo cả từ, cho phép sửa tay</p></section>';
+ '<section class="card"><h2>Bản sao của riêng bạn</h2><p class="tiny muted">Từ vựng của bản app trước được tự nạp vào sổ này (từ trình duyệt và từ tài khoản đồng bộ). Bạn vẫn có thể tải bản cũ bên dưới nếu cần.</p><div class="row"><button type="button" id="download-previous">Tải sổ trước (JSON)</button><button type="button" id="download-before-clear">Tải bản sao trước lần xoá gần nhất</button><button type="button" id="clear-current" class="danger">Xoá toàn bộ từ trong sổ này</button></div><p class="muted">JSON gồm bài học, từ vựng, thống kê và cài đặt. Dùng để chuyển sang máy hoặc trình duyệt khác.</p><div class="row"><button id="export-settings" class="primary">Xuất file JSON</button><button id="import-button">Nhập file JSON</button><button id="export-days-settings">Xuất từ theo ngày</button><input id="import-file" type="file" accept=".json,application/json" hidden></div><p class="tiny muted" style="margin:14px 0 0">Nhập file sẽ cho bạn xem số ngày, số từ và chọn ghép hoặc thay thế trước khi áp dụng.</p>'+(corruptRaw!==null?'<hr class="divider"><button class="danger" id="download-corrupt">Tải dữ liệu gốc đang bị lỗi</button>':'')+'</section></div><section class="card" id="sync-card" style="margin-top:20px"></section><section class="card" style="margin-top:20px"><h2>Về dữ liệu và kết nối</h2><p>Ứng dụng lưu bằng <code>localStorage</code> trên thiết bị này'+(FIREBASE_CONFIG?' và đồng bộ lên Firebase khi bạn đăng nhập Google':', không có tài khoản hay máy chủ đồng bộ')+'. Khi xoá dữ liệu trình duyệt, bạn có thể mất bài học nếu chưa xuất JSON.</p><p class="muted">Cần mạng để tải Hanzi Writer và nét chữ chưa tải. Sau khi tải, nét được giữ trong bộ nhớ của phiên đang mở. Khi mở lại trang ngoại tuyến, phần viết tay có thể không chạy; luyện nghĩa vẫn dùng được.</p><p class="tiny muted" style="margin-bottom:0">Hanzi Writer 3.7.3 · Dữ liệu nét 2.0.1 · Chữ giản thể do bạn nhập · pinyin-pro 3.18.2 · Tự tạo pinyin theo cả từ, cho phép sửa tay</p></section>';
  $('#settings-pinyin-mode').value=state.settings.pinyinMode;
  $('#speech-rate').oninput=()=>$('#rate-value').textContent=$('#speech-rate').value;
  $('#settings-form').onsubmit=e=>{e.preventDefault();const n=Number($('#max-mistakes').value);if(!Number.isInteger(n)||n<0||n>50)return;const next=clone(state);next.settings.maxMistakesPerChar=n;next.settings.attemptsBeforeReveal=Number($('#attempts-before-reveal').value);next.settings.pinyinMode=$('#settings-pinyin-mode').value;next.settings.writingWithPinyin=$('#settings-with-pinyin').checked;next.settings.speechRate=Number($('#speech-rate').value);next.settings.autoSpeak=$('#auto-speak').checked;if(commit(next))toast('Đã lưu cài đặt.');};
@@ -1034,6 +1036,8 @@ function readRemote(snap){
  const raw=snap.exists()?snap.data().dataV3:null;if(!raw)return null;
  return validateState(JSON.parse(raw));
 }
+// Sổ của bản app trước (trường data). Chỉ dùng ở lần đồng bộ đầu, khi sổ v3 trên mây còn trống.
+function readLegacyRemote(snap){try{const raw=snap.exists()?snap.data().data:null;return raw?validateState(JSON.parse(raw)):null;}catch{return null;}}
 function applyRemote(remote){
  state=remote;
  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(remote));memoryOnly=false;corruptRaw=null;}catch{memoryOnly=true;}
@@ -1048,8 +1052,9 @@ function onCloudSnapshot(snap){
  let remote;try{remote=readRemote(snap);}catch{setCloud('error','Không đọc được dữ liệu trên mây. Hãy tải lại trang để dùng bản app mới nhất.');return;}
  if(!cloud.ready){
   cloud.ready=true;
+  let legacy=false;if(!remote||!remote.lessons.length){const old=readLegacyRemote(snap);if(old&&old.lessons.length){remote=old;legacy=true;}}
   if(!remote||!remote.lessons.length){cloudPush();return;}
-  if(!state.lessons.length||JSON.stringify(remote)===JSON.stringify(state)){applyRemote(remote);setCloud('synced');return;}
+  if(!state.lessons.length||JSON.stringify(remote)===JSON.stringify(state)){applyRemote(remote);if(legacy){cloudPush();toast('Đã nạp lại các từ vựng cũ từ tài khoản.');}else setCloud('synced');return;}
   // Lần đầu máy này và mây khác nhau: tự ghép cả hai, không làm mất bài nào.
   if(commit(mergeImportedState(state,remote))){applyRemote(state);toast('Đã ghép dữ liệu máy này với tài khoản.');}
   else{cloud.ready=false;setCloud('error','Chưa ghép được dữ liệu máy này với tài khoản. Hãy tải lại trang.');}
